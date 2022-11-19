@@ -2,11 +2,13 @@ import os
 import glob
 import logging
 from time import time
+import time as datetimebutcheap
+from datetime import date
 import json
 import asyncio
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from dotenv import load_dotenv
 
@@ -57,7 +59,11 @@ class MyBot(commands.Bot):
         print("Bot is now ready!")
         
         await self.sync_tree()
+        
         if not self.ready:
+            
+            change_status_task.start()
+            
             guild_count = 0
             for guild in self.guilds:
                 print(f"- {guild.id} (name: {guild.name})")
@@ -71,6 +77,29 @@ MyBot.ready = False
 bot = MyBot()
 tree = bot.tree
 
+#god i hate this code but i also love it lmao
+startTime = date.today()
+startUnix = datetimebutcheap.strftime("%H:%M")
+thThing = "th"
+
+day = startTime.strftime("%d")
+
+if day == "1" or day == "21" or day == "31":
+    thThing = "st"
+if day == "2" or day == "22":
+    thThing = "nd"
+if day == "3" or day == "23":
+    thThing = "rd"
+
+startDate = startTime.strftime('%b %d').lower()
+
+@tasks.loop(minutes=10)
+async def change_status_task():
+    await bot.change_presence(
+        status=discord.Status.online,
+        activity=discord.Activity(type=discord.ActivityType.playing, name=(f"since {startUnix} on {startDate}{thThing}")),
+    )
+
 async def load_cogs(bot):
     print("Loading cogs...")
     # loads cogs
@@ -78,7 +107,7 @@ async def load_cogs(bot):
         if filename.endswith('.py'):
             filename = filename[2:].replace("/", ".") # goes from "./cogs/economy.py" to "cogs.economy.py"
             await bot.load_extension(f'{filename[:-3]}') # removes the ".py" from the end of the filename, to make it into cogs.economy
-    
+
 
 async def main():
     async with bot:
